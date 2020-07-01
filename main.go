@@ -124,7 +124,8 @@ func sendMessage(ModeRSA, ModeECDSA bool) {
 			panic(err)
 		}
 		fmt.Printf("r: %x, s: %x\n", (r), (s))
-		signature = []byte(r.String() + s.String())
+		signature = append(r.Bytes(), s.Bytes()...)
+
 	}
 	stepElapsingTime = time.Since(stepStartTime)
 	fmt.Println("Signing Elapsing Time: ", stepElapsingTime)
