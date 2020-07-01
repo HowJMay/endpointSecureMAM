@@ -21,12 +21,32 @@ import (
 )
 
 func main() {
-	var ModeRSA, ModeECDSA bool
-	flag.BoolVar(&ModeRSA, "rsa", false, "Set to RSA mode")
-	flag.BoolVar(&ModeECDSA, "ecdsa", true, "Set to ECDSA mode")
+	var ModeRSA, ModeECDSA, plaintextSizeBenchmark bool
+	flag.BoolVar(&ModeRSA, "rsa", false, "Set to RSA mode.")
+	flag.BoolVar(&ModeECDSA, "ecdsa", true, "Set to ECDSA mode.")
+	flag.BoolVar(&plaintextSizeBenchmark, "benchmark", false, "Run benchmark for different plaintext length.")
 	flag.Parse()
 
-	sendMessage(ModeRSA, ModeECDSA)
+	if plaintextSizeBenchmark {
+		startLen := 10
+		endLen := 200
+		step := 10
+		plaintext := ""
+		stepSubstring := ""
+		for i := 0; i < step; i++ {
+			stepSubstring += "a"
+		}
+
+		for i := startLen; i < endLen+1; i += step {
+			plaintext += stepSubstring
+			fmt.Println("=============length = ", i, "=============")
+			sendMessage(ModeRSA, ModeECDSA, plaintext)
+		}
+	} else {
+		plaintext := "{\"consumption\":\"12kWh\"}"
+		sendMessage(ModeRSA, ModeECDSA, plaintext)
+	}
+
 }
 
 func aesEncrypt(input, key []byte) []byte {
@@ -51,11 +71,10 @@ func aesEncrypt(input, key []byte) []byte {
 	return ciphertext
 }
 
-func sendMessage(ModeRSA, ModeECDSA bool) {
+func sendMessage(ModeRSA, ModeECDSA bool, plaintext string) {
 	KMR := []byte("this is key material")                  // This is hardware secret
 	uuid := []byte("123e4567-e89b-12d3-a456-426655440000") // This is shared information which can be used to change different AES key set
 	lastMac := []byte("123e4567-e89b-12d3-a456-42665544")
-	plaintext := "{\"consumption\":\"12kWh\"}"
 
 	startTime := time.Now()
 	hash256 := sha256.New
@@ -76,7 +95,6 @@ func sendMessage(ModeRSA, ModeECDSA bool) {
 	}
 	stepElapsingTime := time.Since(stepStartTime)
 	fmt.Println("Generate Key Pair Elapsing Time: ", stepElapsingTime)
-	fmt.Println("") // Print one more newline
 	keyGenerateTime := stepElapsingTime
 
 	// Generate AES key
@@ -131,9 +149,11 @@ func sendMessage(ModeRSA, ModeECDSA bool) {
 	fmt.Println("Signing Elapsing Time: ", stepElapsingTime)
 
 	elapsingTime := time.Since(startTime)
-	fmt.Println("==============End==============")
+	fmt.Println("==============Result==============")
 	//fmt.Printf("Signature len: %d, Cipher len: %d\n", len(signature), len(ciphertext))
 	fmt.Printf("Signature: %x, Cipher: %x\n", (signature), (ciphertext))
 	fmt.Println("Total Elapsing Time: ", elapsingTime)
 	fmt.Println("Without Key Generation Elapsing Time: ", elapsingTime-keyGenerateTime)
+	fmt.Println("==============End==============")
+	fmt.Println("")
 }
