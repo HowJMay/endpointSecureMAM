@@ -17,17 +17,21 @@ import (
 	"os"
 	"time"
 
+	ecies "github.com/ecies/go"
 	"golang.org/x/crypto/hkdf"
 )
 
 func main() {
-	var ModeRSA, ModeECDSA, plaintextSizeBenchmark bool
+	var ModeRSA, ModeECDSA, plaintextSizeBenchmark, seedExchange bool
 	flag.BoolVar(&ModeRSA, "rsa", false, "Set to RSA mode.")
 	flag.BoolVar(&ModeECDSA, "ecdsa", true, "Set to ECDSA mode.")
 	flag.BoolVar(&plaintextSizeBenchmark, "benchmark", false, "Run benchmark for different plaintext length.")
+	flag.BoolVar(&seedExchange, "seed", false, "Set to key exchange example.")
 	flag.Parse()
 
-	if plaintextSizeBenchmark {
+	if seedExchange {
+		registerSeed()
+	} else if plaintextSizeBenchmark {
 		startLen := 10
 		endLen := 200
 		step := 10
@@ -49,26 +53,33 @@ func main() {
 
 }
 
-func aesEncrypt(input, key []byte) []byte {
-	// padding
-	if input == nil || len(input) == 0 {
-		return nil
-	}
-	n := aes.BlockSize - (len(input) % aes.BlockSize)
-	pb := make([]byte, len(input)+n)
-	copy(pb, input)
-	copy(pb[len(input):], bytes.Repeat([]byte{byte(n)}, n))
+func registerSeed() {
+	seed := "THIS9IS9AN9ADDRESS9USED9BY9TAGNLEACCELERATOR9999999999999999999999999999999999999"
 
-	// encryption
-	ciphertext := make([]byte, aes.BlockSize+len(pb))
-	block, _ := aes.NewCipher(key)
-	iv := make([]byte, aes.BlockSize)
-	for i := 0; i < aes.BlockSize; i++ {
-		iv[i] = byte(i)
+	startTime := time.Now()
+	stepStartTime := time.Now()
+	k, err := ecies.GenerateKey()
+	if err != nil {
+		panic(err)
 	}
-	bm := cipher.NewCBCEncrypter(block, iv)
-	bm.CryptBlocks(ciphertext[aes.BlockSize:], pb)
-	return ciphertext
+	stepElapsingTime := time.Since(stepStartTime)
+	fmt.Println("Generate Key Elapsing Time: ", stepElapsingTime)
+
+	ciphertext, err := ecies.Encrypt(k.PublicKey, []byte(seed))
+	if err != nil {
+		panic(err)
+	}
+	stepElapsingTime = time.Since(stepStartTime)
+	fmt.Println("Encrypt Seed Elapsing Time: ", stepElapsingTime)
+
+	_, err = ecies.Decrypt(k, ciphertext)
+	if err != nil {
+		panic(err)
+	}
+	stepElapsingTime = time.Since(stepStartTime)
+	fmt.Println("Decrypt Seed Elapsing Time: ", stepElapsingTime)
+	elapsingTime := time.Since(startTime)
+	fmt.Println("Total Elapsing Time: ", elapsingTime)
 }
 
 func sendMessage(ModeRSA, ModeECDSA bool, plaintext string) {
@@ -156,4 +167,26 @@ func sendMessage(ModeRSA, ModeECDSA bool, plaintext string) {
 	fmt.Println("Without Key Generation Elapsing Time: ", elapsingTime-keyGenerateTime)
 	fmt.Println("==============End==============")
 	fmt.Println("")
+}
+
+func aesEncrypt(input, key []byte) []byte {
+	// padding
+	if input == nil || len(input) == 0 {
+		return nil
+	}
+	n := aes.BlockSize - (len(input) % aes.BlockSize)
+	pb := make([]byte, len(input)+n)
+	copy(pb, input)
+	copy(pb[len(input):], bytes.Repeat([]byte{byte(n)}, n))
+
+	// encryption
+	ciphertext := make([]byte, aes.BlockSize+len(pb))
+	block, _ := aes.NewCipher(key)
+	iv := make([]byte, aes.BlockSize)
+	for i := 0; i < aes.BlockSize; i++ {
+		iv[i] = byte(i)
+	}
+	bm := cipher.NewCBCEncrypter(block, iv)
+	bm.CryptBlocks(ciphertext[aes.BlockSize:], pb)
+	return ciphertext
 }
