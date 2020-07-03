@@ -17,7 +17,7 @@ import (
 	"os"
 	"time"
 
-	ecies "github.com/ecies/go"
+	"github.com/obscuren/ecies"
 	"golang.org/x/crypto/hkdf"
 )
 
@@ -58,21 +58,21 @@ func registerSeed() {
 
 	startTime := time.Now()
 	stepStartTime := time.Now()
-	k, err := ecies.GenerateKey()
+	k, err := ecies.GenerateKey(rand.Reader, elliptic.P256(), nil)
 	if err != nil {
 		panic(err)
 	}
 	stepElapsingTime := time.Since(stepStartTime)
 	fmt.Println("Generate Key Elapsing Time: ", stepElapsingTime)
 
-	ciphertext, err := ecies.Encrypt(k.PublicKey, []byte(seed))
+	ciphertext, err := ecies.Encrypt(rand.Reader, &k.PublicKey, []byte(seed))
 	if err != nil {
 		panic(err)
 	}
 	stepElapsingTime = time.Since(stepStartTime)
 	fmt.Println("Encrypt Seed Elapsing Time: ", stepElapsingTime)
 
-	_, err = ecies.Decrypt(k, ciphertext)
+	_, err = k.Decrypt(k, ciphertext)
 	if err != nil {
 		panic(err)
 	}
