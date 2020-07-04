@@ -17,7 +17,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/obscuren/ecies"
 	"golang.org/x/crypto/hkdf"
 )
 
@@ -30,22 +29,25 @@ func main() {
 	flag.Parse()
 
 	if seedExchange {
-		registerSeed()
+		//registerSeed()
 	} else if plaintextSizeBenchmark {
-		startLen := 10
-		endLen := 200
-		step := 10
+		startLen := 50
+		endLen := 2000
+		step := 50
 		plaintext := ""
 		stepSubstring := ""
 		for i := 0; i < step; i++ {
 			stepSubstring += "a"
 		}
-
+		var benchmarkTime []time.Duration
 		for i := startLen; i < endLen+1; i += step {
+			startTime := time.Now()
 			plaintext += stepSubstring
 			fmt.Println("=============length = ", i, "=============")
 			sendMessage(ModeRSA, ModeECDSA, plaintext)
+			benchmarkTime = append(benchmarkTime, time.Since(startTime))
 		}
+		fmt.Println(benchmarkTime)
 	} else {
 		plaintext := "{\"consumption\":\"12kWh\"}"
 		sendMessage(ModeRSA, ModeECDSA, plaintext)
@@ -53,6 +55,7 @@ func main() {
 
 }
 
+/*
 func registerSeed() {
 	seed := "THIS9IS9AN9ADDRESS9USED9BY9TAGNLEACCELERATOR9999999999999999999999999999999999999"
 
@@ -81,7 +84,7 @@ func registerSeed() {
 	elapsingTime := time.Since(startTime)
 	fmt.Println("Total Elapsing Time: ", elapsingTime)
 }
-
+*/
 func sendMessage(ModeRSA, ModeECDSA bool, plaintext string) {
 	KMR := []byte("this is key material")                  // This is hardware secret
 	uuid := []byte("123e4567-e89b-12d3-a456-426655440000") // This is shared information which can be used to change different AES key set
