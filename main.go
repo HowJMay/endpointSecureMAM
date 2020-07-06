@@ -28,6 +28,20 @@ func main() {
 	flag.BoolVar(&seedExchange, "seed", false, "Set to key exchange example.")
 	flag.Parse()
 
+	var benchmarkTime []time.Duration
+	var ecdsaPrivateKey *ecdsa.PrivateKey
+
+	// RSA Key size in 3072 bits is in the same security level as ECDSA with a Key in 256 bits
+	if ModeRSA {
+		//rsaPrivateKey, err := rsa.GenerateKey(rand.Reader, 3072)
+	} else if ModeECDSA {
+		ecdsaPrivateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			panic(err)
+		}
+		_ = ecdsaPrivateKey
+	}
+
 	if seedExchange {
 		//registerSeed()
 	} else if plaintextSizeBenchmark {
@@ -39,18 +53,19 @@ func main() {
 		for i := 0; i < step; i++ {
 			stepSubstring += "a"
 		}
-		var benchmarkTime []time.Duration
+
+		//var rsaPrivateKey *rsa.PrivateKey
 		for i := startLen; i < endLen+1; i += step {
 			startTime := time.Now()
 			plaintext += stepSubstring
 			fmt.Println("=============length = ", i, "=============")
-			sendMessage(ModeRSA, ModeECDSA, plaintext)
+			sendMessage(ModeRSA, ModeECDSA, plaintext, ecdsaPrivateKey, nil)
 			benchmarkTime = append(benchmarkTime, time.Since(startTime))
 		}
 		fmt.Println(benchmarkTime)
 	} else {
 		plaintext := "{\"consumption\":\"12kWh\"}"
-		sendMessage(ModeRSA, ModeECDSA, plaintext)
+		sendMessage(ModeRSA, ModeECDSA, plaintext, ecdsaPrivateKey, nil)
 	}
 
 }
@@ -85,7 +100,7 @@ func registerSeed() {
 	fmt.Println("Total Elapsing Time: ", elapsingTime)
 }
 */
-func sendMessage(ModeRSA, ModeECDSA bool, plaintext string) {
+func sendMessage(ModeRSA, ModeECDSA bool, plaintext string, ecdsaPrivateKey *ecdsa.PrivateKey, rsaPrivateKey *rsa.PrivateKey) {
 	KMR := []byte("this is key material")                  // This is hardware secret
 	uuid := []byte("123e4567-e89b-12d3-a456-426655440000") // This is shared information which can be used to change different AES key set
 	lastMac := []byte("123e4567-e89b-12d3-a456-42665544")
@@ -95,8 +110,7 @@ func sendMessage(ModeRSA, ModeECDSA bool, plaintext string) {
 
 	// Generating Signing Key pair
 	stepStartTime := time.Now()
-	var ecdsaPrivateKey *ecdsa.PrivateKey
-	var rsaPrivateKey *rsa.PrivateKey
+
 	var err error
 	// RSA Key size in 3072 bits is in the same security level as ECDSA with a Key in 256 bits
 	if ModeRSA {
